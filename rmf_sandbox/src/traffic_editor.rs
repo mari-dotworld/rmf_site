@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::basic_components;
 use crate::building_map::BuildingMap;
 use crate::camera_controls::{CameraControls, ProjectionMode};
+use crate::crowd_sim::CrowdSim;
 use crate::door::{Door, DoorType, DOOR_TYPES};
 use crate::floor::Floor;
 use crate::interaction::{Hovering, InteractionPlugin, Selected};
@@ -32,6 +33,21 @@ pub struct ElementDeleted(pub Entity);
 
 trait Editable {
     fn draw(&mut self, ui: &mut egui::Ui) -> bool;
+}
+
+impl Editable for CrowdSim {
+    fn draw(&mut self, ui: &mut egui::Ui) -> bool {
+        let mut changed = false;
+        egui::Grid::new("Pedestrian Crowd Stream").num_columns(2).show(ui, |ui| {
+            ui.label("Source");
+            ui.label(format!("{}", self.0));
+            ui.end_row();
+
+            ui.label("Sink");
+            ui.label(format!("{}", self.1));
+            ui.end_row();
+        }
+    }
 }
 
 impl Editable for Vertex {
