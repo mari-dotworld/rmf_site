@@ -39,14 +39,9 @@ impl Editable for CrowdSim {
     fn draw(&mut self, ui: &mut egui::Ui) -> bool {
         let mut changed = false;
         egui::Grid::new("Pedestrian Crowd Stream").num_columns(2).show(ui, |ui| {
-            ui.label("Source");
-            ui.label(format!("{}", self.0));
-            ui.end_row();
-
-            ui.label("Sink");
-            ui.label(format!("{}", self.1));
-            ui.end_row();
-        }
+            
+        });
+        changed
     }
 }
 
