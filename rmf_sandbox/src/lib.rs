@@ -46,6 +46,7 @@ mod sandbox_asset_io;
 mod utils;
 mod vertex;
 mod wall;
+mod simulation_state;
 
 use camera_controls::CameraControlsPlugin;
 use despawn::DespawnPlugin;

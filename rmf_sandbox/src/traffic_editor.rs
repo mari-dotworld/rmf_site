@@ -14,6 +14,7 @@ use crate::save_load::SaveMap;
 use crate::site_map::{SiteMapCurrentLevel, SiteMapLabel, SiteMapState};
 use crate::spawner::{Spawner, VerticesManagers};
 use crate::vertex::Vertex;
+use crate::simulation_state::SimulationState;
 use crate::wall::Wall;
 use crate::widgets::TextEditJson;
 use crate::{AppState, OpenedMapFile};
@@ -701,6 +702,7 @@ fn egui_ui(
     mut q_camera_controls: Query<&mut CameraControls>,
     mut cameras: Query<(&mut Camera, &mut Visibility)>,
     mut app_state: ResMut<State<AppState>>,
+    mut sim_state: ResMut<SimulationState>,
     mut editor: EditorPanel,
     opened_map_file: Option<Res<OpenedMapFile>>,
     map: Res<BuildingMap>,
@@ -737,6 +739,15 @@ fn egui_ui(
                     .clicked()
                 {
                     controls.use_perspective(true, &mut cameras);
+                }
+                if ui
+                    .add(egui::SelectableLabel::new(
+                        sim_state.paused,
+                        "Preview Simulation",
+                    ))
+                    .clicked()
+                {
+                    sim_state.paused = !sim_state.paused;
                 }
                 #[cfg(not(target_arch = "wasm32"))]
                 {
@@ -1326,6 +1337,7 @@ pub struct TrafficEditorPlugin;
 impl Plugin for TrafficEditorPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(InteractionPlugin::new(AppState::TrafficEditor))
+            .init_resource::<SimulationState>()
             .init_resource::<Option<SelectedEditable>>()
             .init_resource::<Option<HoveredEditable>>()
             .init_resource::<HasChanges>()
