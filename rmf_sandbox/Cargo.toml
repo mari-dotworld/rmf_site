@@ -25,6 +25,9 @@ futures-lite = "1.12.0"
 bevy = "0.8"
 dirs = "4.0"
 thread_local = "*"
+derivative = "2.2.0"
+
+rmf_crowdsim = { path = '/home/arjo/workspaces/rust/rmf_crowdsim/rmf_crowdsim/' }
 
 # only enable the 'dynamic' feature if we're not building for web or windows
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))'.dependencies]

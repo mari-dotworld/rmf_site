@@ -4,6 +4,7 @@ use crate::basic_components;
 use crate::building_map::BuildingMap;
 use crate::camera_controls::{CameraControls, ProjectionMode};
 use crate::crowd_sim::CrowdSim;
+use crate::crowdsim_bevy::*;
 use crate::door::{Door, DoorType, DOOR_TYPES};
 use crate::floor::Floor;
 use crate::interaction::{Hovering, InteractionPlugin, Selected};
@@ -1370,6 +1371,7 @@ impl Plugin for TrafficEditorPlugin {
                     .with_system(propagate_editable_tags.after(add_editable_tags))
                     .with_system(enable_picking_editables),
             )
+            .add_plugin(CrowdSimPlugin)
             .add_plugin(PickingPlugin)
             .init_resource::<PausedForBlockers>()
             .add_system_set_to_stage(
