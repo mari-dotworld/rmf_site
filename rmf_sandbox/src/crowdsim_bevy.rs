@@ -58,14 +58,14 @@ impl<M: Map> HighLevelPlanner<M> for StubHighLevelPlan {
 
 struct CrowdEventListener {
     pub to_add: VecDeque<(AgentId, Vec2f)>,
-    pub to_remove: VecDeque<AgentId>,
+    //pub to_remove: VecDeque<AgentId>,
 }
 
 impl CrowdEventListener {
     fn new() -> Self {
         Self {
             to_add: VecDeque::new(),
-            to_remove: VecDeque::new()
+            //to_remove: VecDeque::new()
         }
     }
 }
@@ -77,7 +77,8 @@ impl EventListener for CrowdEventListener {
 
     /// Called each time an agent is destroyed
     fn agent_destroyed(&mut self, agent: AgentId) {
-        self.to_remove.push_back(agent);
+        //println!("Remove agent");
+        //self.to_remove.push_back(agent);
     }
 }
 
@@ -96,7 +97,7 @@ impl CrowdSimComponent {
 
     fn new() -> Self
     {
-        let speed = Vec2f::new(0f64, 10f64);
+        let speed = Vec2f::new(1.0f64, 0f64);
 
         let map = Arc::new(NoMap {});
         let stub_spatial = LocationHash2D::new(1000f64, 1000f64, 20f64, Point::new(-500f64, -500f64));
@@ -109,7 +110,7 @@ impl CrowdSimComponent {
         let crowd_sim = Simulation::<NoMap, LocationHash2D>::new(map, stub_spatial);
         let event_listener = Arc::new(Mutex::new(CrowdEventListener::new()));
 
-        let crowd_generator = Arc::new(PoissonCrowd::new(1f64));
+        let crowd_generator = Arc::new(PoissonCrowd::new(0.05f64));
 
         /// TODO: Keep for testing purpose only
         let source_sink = Arc::new(SourceSink::<NoMap> {
@@ -148,7 +149,7 @@ fn step_crowd_manager(
     mut crowd_sim: NonSendMut<CrowdSimComponent>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query: Query<(&mut Transform, &Actor)>,
+    mut query: Query<(Entity, &mut Transform, &Actor)>,
     time: ResMut<Time>
 ) {
     crowd_sim.crowd_simulation.step(time.delta());
@@ -163,11 +164,16 @@ fn step_crowd_manager(
         }).insert(Actor {id: agent_id});
     }
 
-    for (mut transform, actor) in query.iter_mut() {
+    for (entity, mut transform, actor) in query.iter_mut() {
         let agent_data = crowd_sim.crowd_simulation.agents.get(&actor.id);
         if let Some(agent_data) = agent_data {
             transform.translation = Vec3{
                 x: agent_data.position.x as f32, y: agent_data.position.y as f32, z: 0.0};
+        }
+        else {
+            // Agent doesn't exist anymore. Despawn it
+            //bevy::log::error!("Agent not found");
+            commands.entity(entity).despawn();
         }
     }
 }
