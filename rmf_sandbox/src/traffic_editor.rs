@@ -12,6 +12,7 @@ use crate::lane::Lane;
 use crate::lift::Lift;
 use crate::measurement::Measurement;
 use crate::model::Model;
+use crate::physical_camera::PhysicalCamera;
 use crate::save_load::SaveMap;
 use crate::simulation_state::SimulationState;
 use crate::site_map::{SiteMapCurrentLevel, SiteMapLabel, SiteMapState};
@@ -522,6 +523,83 @@ impl Editable for EditableLift {
     }
 }
 
+impl Editable for PhysicalCamera {
+    fn draw(&mut self, ui: &mut egui::Ui) -> bool {
+        let mut changed = false;
+
+        egui::Grid::new("camera").num_columns(2).show(ui, |ui| {
+            ui.label("Name");
+            changed = ui.text_edit_singleline(&mut self.name).changed() || changed;
+            ui.end_row();
+
+            ui.label("X");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.x).speed(0.1))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Y");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.y).speed(0.1))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Z");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.z).speed(0.1))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Pitch");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.pitch).speed(0.05))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Yaw");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.yaw).speed(0.1))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Image Fov");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.image_fov).speed(0.1))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Image Width");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.image_width).speed(10))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Image Height");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.image_height).speed(10))
+                .changed()
+                || changed;
+            ui.end_row();
+
+            ui.label("Update Rate");
+            changed = ui
+                .add(egui::DragValue::new(&mut self.update_rate))
+                .changed()
+                || changed;
+            ui.end_row();
+        });
+
+        changed
+    }
+}
+
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditableTag {
     Lane(Entity),
@@ -532,6 +610,7 @@ pub enum EditableTag {
     Floor(Entity),
     Door(Entity),
     Lift(Entity),
+    PhysicalCamera(Entity),
     /// Apply this tag to entities which may be a child of an editable item
     /// but should be ignored by the picker
     Ignore,
@@ -552,6 +631,7 @@ impl EditableTag {
             Self::Floor(e) => Some(*e),
             Self::Door(e) => Some(*e),
             Self::Lift(e) => Some(*e),
+            Self::PhysicalCamera(e) => Some(*e),
             Self::Ignore => None,
         }
     }
@@ -574,6 +654,7 @@ enum EditorData {
     Floor(EditableFloor),
     Door(Door),
     Lift(EditableLift),
+    PhysicalCamera(PhysicalCamera),
 }
 
 #[derive(Clone)]
@@ -595,6 +676,7 @@ struct EditorPanel<'w, 's> {
     q_floor: Query<'w, 's, &'static mut Floor>,
     q_door: Query<'w, 's, &'static mut Door>,
     q_lift: Query<'w, 's, &'static mut Lift>,
+    q_physical_camera: Query<'w, 's, &'static mut PhysicalCamera>,
 }
 
 impl<'w, 's> EditorPanel<'w, 's> {
@@ -651,6 +733,7 @@ impl<'w, 's> EditorPanel<'w, 's> {
             EditorData::Floor(_) => "Floor".to_string(),
             EditorData::Door(_) => "Door".to_string(),
             EditorData::Lift(_) => "Lift".to_string(),
+            EditorData::PhysicalCamera(_) => "PhysicalCamera".to_string(),
         };
 
         ui.heading(title);
@@ -702,6 +785,12 @@ impl<'w, 's> EditorPanel<'w, 's> {
             EditorData::Lift(editable_lift) => {
                 if editable_lift.draw(ui) {
                     commit_changes(&mut self.q_lift, e, &editable_lift.lift);
+                    *has_changes = true;
+                }
+            }
+            EditorData::PhysicalCamera(physical_camera) => {
+                if physical_camera.draw(ui) {
+                    commit_changes(&mut self.q_physical_camera, e, physical_camera);
                     *has_changes = true;
                 }
             }
@@ -875,6 +964,17 @@ fn egui_ui(
                                 ),
                             )));
                         }
+                        if ui.button("Add Camera").clicked() {
+                            let new_physical_camera = PhysicalCamera::default();
+                            let new_entity = spawner
+                                .spawn_in_level(&current_level.0, new_physical_camera.clone())
+                                .unwrap()
+                                .id();
+                            select.send(Some(SelectedEditable(
+                                EditableTag::PhysicalCamera(new_entity),
+                                EditorData::PhysicalCamera(new_physical_camera),
+                            )));
+                        }
                     });
                     ui.group(|ui| {
                         editor.draw(
@@ -1043,6 +1143,12 @@ impl<'w, 's> EditableQuery<'w, 's> {
                     ),
                 ))
             }),
+            EditableTag::PhysicalCamera(entity) => self.q_physical_camera.get(*entity).map(|c| {
+                Some(SelectedEditable(
+                    *tag,
+                    EditorData::PhysicalCamera(c.clone()),
+                ))
+            }),
             EditableTag::Ignore => Ok(None),
         };
 
@@ -1174,6 +1280,7 @@ fn add_editable_tags(
     doors: Query<Entity, Added<Door>>,
     lifts: Query<Entity, Added<Lift>>,
     meshes: Query<Entity, With<Handle<Mesh>>>,
+    physical_cameras: Query<Entity, Added<PhysicalCamera>>,
 ) {
     // TODO(MXG): Consider a macro to get rid of this boilerplate
     for e in &lanes {
@@ -1227,6 +1334,13 @@ fn add_editable_tags(
 
     for e in &lifts {
         commands.entity(e).insert(EditableTag::Lift(e));
+        if meshes.contains(e) {
+            commands.entity(e).insert_bundle(PickableBundle::default());
+        }
+    }
+
+    for e in &physical_cameras {
+        commands.entity(e).insert(EditableTag::PhysicalCamera(e));
         if meshes.contains(e) {
             commands.entity(e).insert_bundle(PickableBundle::default());
         }
@@ -1341,6 +1455,7 @@ pub struct EditableQuery<'w, 's> {
     q_door: Query<'w, 's, &'static Door>,
     q_lift: Query<'w, 's, &'static Lift>,
     q_name: Query<'w, 's, &'static basic_components::Name>,
+    q_physical_camera: Query<'w, 's, &'static PhysicalCamera>,
 }
 
 #[derive(Default)]
