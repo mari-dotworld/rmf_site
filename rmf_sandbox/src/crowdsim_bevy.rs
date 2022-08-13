@@ -1,4 +1,5 @@
 use rmf_crowdsim::local_planners::zanlungo::Zanlungo;
+use rmf_crowdsim::local_planners::no_local_plan::NoLocalPlan;
 use rmf_crowdsim::source_sink::source_sink::{PoissonCrowd, SourceSink};
 use rmf_crowdsim::spatial_index::location_hash_2d::LocationHash2D;
 use rmf_crowdsim::spatial_index::spatial_index::SpatialIndex;
@@ -103,14 +104,12 @@ impl CrowdSimComponent {
         let stub_spatial = LocationHash2D::new(1000f64, 1000f64, 20f64, Point::new(-500f64, -500f64));
 
         let high_level_planner = Arc::new(Mutex::new(StubHighLevelPlan::new(speed)));
-        let local_planner = Arc::new(Mutex::new(Zanlungo::new(
-            1f64, 1f64, 0f64, 40f64, 2f64, 20f64,
-        )));
+        let local_planner = Arc::new(Mutex::new(NoLocalPlan{}));
 
         let crowd_sim = Simulation::<NoMap, LocationHash2D>::new(map, stub_spatial);
         let event_listener = Arc::new(Mutex::new(CrowdEventListener::new()));
 
-        let crowd_generator = Arc::new(PoissonCrowd::new(0.05f64));
+        let crowd_generator = Arc::new(PoissonCrowd::new(0.2f64));
 
         /// TODO: Keep for testing purpose only
         let source_sink = Arc::new(SourceSink::<NoMap> {
@@ -154,10 +153,9 @@ fn step_crowd_manager(
 ) {
     crowd_sim.crowd_simulation.step(time.delta());
     while let Some(agent) = crowd_sim.event_listener.lock().unwrap().to_add.pop_front() {
-        println!("Spawning new hooman");
         let (agent_id, pos) = agent;
         commands.spawn_bundle(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
             transform: Transform::from_xyz(pos.x as f32, pos.y as f32, 0.0),
             ..default()
