@@ -24,12 +24,14 @@ impl Map for NoMap {
 
 struct StubHighLevelPlan {
     default_vel: Vec2f,
+    target: Option<Vec2f>
 }
 
 impl StubHighLevelPlan {
     fn new(default_vel: Vec2f) -> Self {
         StubHighLevelPlan {
             default_vel: default_vel,
+            target: None
         }
     }
 }
@@ -37,15 +39,23 @@ impl StubHighLevelPlan {
 impl<M: Map> HighLevelPlanner<M> for StubHighLevelPlan {
     fn get_desired_velocity(
         &mut self,
-        _agent: &Agent,
+        agent: &Agent,
         _time: std::time::Duration,
     ) -> Option<Vec2f> {
-        Some(self.default_vel)
+        if let Some(target) = self.target
+        {
+            let dir_vec = target - agent.position;
+            let dir_vec = dir_vec/dir_vec.norm();
+            return Some(self.default_vel.norm() * dir_vec);
+        }
+
+        Some(Vec2f::new(0f64, 0f64));
     }
 
     /// Set the target position for a given agent
     fn set_target(&mut self, _agent: &Agent, _point: Point, _tolerance: Vec2f) {
         // For now do nothing
+        self.target = Some(_point);
     }
     /// Remove an agent
     fn remove_agent_id(&mut self, _agent: AgentId) {
@@ -113,7 +123,7 @@ impl CrowdSimComponent {
 
         /// TODO: Keep for testing purpose only
         let source_sink = Arc::new(SourceSink::<NoMap> {
-            source: Vec2f::new(0f64, 0f64),
+            source: Vec2f::new(0f64, -3f64),
             sink: Vec2f::new(20f64, 0f64),
             radius_sink: 1f64,
             crowd_generator: crowd_generator,
