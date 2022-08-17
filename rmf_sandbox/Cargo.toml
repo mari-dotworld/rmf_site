@@ -28,6 +28,10 @@ thread_local = "*"
 derivative = "2.2.0"
 
 rmf_crowdsim = { path = '/home/arjo/workspaces/rust/rmf_crowdsim/rmf_crowdsim/' }
+#TODO(arjo): remove into rmf_crowdsim
+line_drawing = "1.0.0"
+mapf = { path = '/home/arjo/workspaces/rust/mapf/mapf' }
+#{git = "https://github.com/open-rmf/mapf.git", branch = "main"}
 
 # only enable the 'dynamic' feature if we're not building for web or windows
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))'.dependencies]

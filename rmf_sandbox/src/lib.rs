@@ -1,3 +1,5 @@
+#![feature(generic_associated_types, associated_type_bounds, type_alias_impl_trait)]
+
 use bevy::{pbr::DirectionalLightShadowMap, prelude::*, render::render_resource::WgpuAdapterInfo};
 use bevy_egui::EguiPlugin;
 use main_menu::MainMenuPlugin;
