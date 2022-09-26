@@ -1,16 +1,18 @@
 use crate::building_map::BuildingMap;
 use crate::despawn::*;
+use crate::lane::{Lane, LaneProperties};
 use crate::level::Level;
 use crate::light::Light;
 use crate::model::Model;
 use crate::settings::*;
-use crate::site_map::{MaterialMap, SiteMapLabel, SiteMapState};
+use crate::site_map::{MaterialMap, SiteAssets, SiteMapLabel, SiteMapState};
 use crate::spawner::Spawner;
-use crate::vertex::Vertex;
+use crate::vertex::{Vertex, VertexProperties};
 use crate::wall::{Wall, WallProperties};
 use crate::AppState;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
+use bevy::math::DVec3;
 
 #[derive(Default, Clone)]
 struct Warehouse {
@@ -80,6 +82,7 @@ fn warehouse_generator(
     mut material_map: ResMut<MaterialMap>,
     asset_server: Res<AssetServer>,
     settings: Res<Settings>,
+    handles: Res<SiteAssets>,
 ) {
     // despawn previous instance
     if warehouse.is_changed() {
@@ -105,6 +108,7 @@ fn warehouse_generator(
     if vertices.len() == 0 {
         return;
     }
+    let mut next_vertex_idx: usize = 4;
 
     vertices[0].0 = -width / 2.;
     vertices[0].1 = -width / 2.;
@@ -123,7 +127,7 @@ fn warehouse_generator(
     let rack_depth = 1.1;
     let aisle_spacing = aisle_width + 2. * rack_depth;
     let num_aisles = (width / aisle_spacing).floor() as i32;
-    let rack_depth_spacing = 1.3;
+    let rack_depth_spacing = 1.0;
     //let rack_depth_offset = 0.5;
 
     let vert_stacks = warehouse.height / 2;
@@ -138,18 +142,24 @@ fn warehouse_generator(
             "L1",
             rack_start_x,
             rack_1_y,
-            0.,
+            -std::f64::consts::PI / 2.0,
             num_racks,
             vert_stacks,
+            DVec3::new(-rack_length / 2.0, 0.7, 0.0),
+            DVec3::new(-rack_length / 2.0, 1.7, 0.0),
+            &mut next_vertex_idx,
         );
         add_racks(
             &mut spawner,
             "L1",
             rack_start_x,
             rack_2_y,
-            0.,
+            -std::f64::consts::PI / 2.0,
             num_racks,
             vert_stacks,
+            DVec3::new(-rack_length / 2.0, -rack_depth - 0.7, 0.0),
+            DVec3::new(-rack_length / 2.0, -rack_depth - 1.7, 0.0),
+            &mut next_vertex_idx,
         );
         if settings.graphics_quality == GraphicsQuality::Ultra {
             // for now we're a square
@@ -211,16 +221,82 @@ fn warehouse_generator(
 fn add_racks(
     spawner: &mut Spawner,
     level: &str,
-    x: f64,
+    rack_start_x: f64,
     y: f64,
     yaw: f64,
     num_racks: i32,
     num_stacks: i32,
+    parking_vec: DVec3,
+    travel_lane_vec: DVec3,
+    next_vertex_idx: &mut usize,
 ) {
     let rack_length = 2.3784;
     let rack_height = 2.4;
 
+    // spawn the vertex at the bottom of the column
+    spawner
+        .spawn_vertex("L1", Vertex(
+            rack_start_x - 0.5 * rack_length,
+            y + travel_lane_vec.y,
+            0.0,
+            "foo".to_string(),
+            VertexProperties::default(),
+        ))
+        .unwrap()
+        .insert(WarehouseRespawnTag);
+    *next_vertex_idx += 1;
+
     for idx in 0..(num_racks + 1) {
+        let rack_x = rack_start_x + (idx as f64) * rack_length;
+
+        if idx > 0 {
+            spawner
+                .spawn_vertex("L1", Vertex(
+                    rack_x + parking_vec.x,
+                    y + parking_vec.y,
+                    0.0,
+                    "foo".to_string(),
+                    VertexProperties::default(),
+                ))
+                .unwrap()
+                .insert(WarehouseRespawnTag);
+
+            spawner
+                .spawn_vertex("L1", Vertex(
+                    rack_x + travel_lane_vec.x,
+                    y + travel_lane_vec.y,
+                    0.0,
+                    "foo".to_string(),
+                    VertexProperties::default(),
+                ))
+                .unwrap()
+                .insert(WarehouseRespawnTag);
+
+            spawner
+                .spawn_in_level("L1", Lane(
+                    *next_vertex_idx,
+                    *next_vertex_idx + 1,
+                    LaneProperties::default(),
+                ))
+                .unwrap()
+                .insert(WarehouseRespawnTag);
+            
+            /*
+            if idx > 1 {
+                spawner
+                    .spawn_in_level("L1", Lane(
+                        *next_vertex_idx + 1,
+                        *next_vertex_idx - 1,
+                        LaneProperties::default(),
+                    ))
+                    .unwrap()
+                    .insert(WarehouseRespawnTag);
+            }
+            */
+
+            *next_vertex_idx += 2;
+        }
+
         for vert_idx in 0..num_stacks {
             let z_offset = (vert_idx as f64) * rack_height;
             spawner
@@ -229,7 +305,7 @@ fn add_racks(
                     Model::from_xyz_yaw(
                         "vert_beam1",
                         "OpenRobotics/PalletRackVertBeams",
-                        x + (idx as f64) * rack_length,
+                        rack_x,
                         y,
                         z_offset,
                         yaw,
@@ -239,7 +315,6 @@ fn add_racks(
                 .insert(WarehouseRespawnTag);
 
             if idx < num_racks {
-                let rack_x = x + (idx as f64) * rack_length;
                 spawner
                     .spawn_in_level(
                         level,
@@ -272,6 +347,19 @@ fn add_racks(
             }
         }
     }
+
+    // spawn the vertex at the top of the column
+    spawner
+        .spawn_vertex("L1", Vertex(
+            rack_start_x + (num_racks as f64 + 0.5) * rack_length,
+            y + travel_lane_vec.y,
+            0.0,
+            "foo".to_string(),
+            VertexProperties::default(),
+        ))
+        .unwrap()
+        .insert(WarehouseRespawnTag);
+    *next_vertex_idx += 1;
 }
 
 fn on_enter(
