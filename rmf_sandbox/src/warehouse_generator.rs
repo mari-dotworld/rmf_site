@@ -7,16 +7,16 @@ use crate::level::Level;
 use crate::light::Light;
 use crate::model::Model;
 use crate::rbmf::RbmfBool;
-use crate::settings::*;
 use crate::save_load::SaveMap;
+use crate::settings::*;
 use crate::site_map::{MaterialMap, SiteAssets, SiteMapLabel, SiteMapState};
 use crate::spawner::Spawner;
 use crate::vertex::{Vertex, VertexProperties};
 use crate::wall::{Wall, WallProperties};
 use crate::AppState;
+use bevy::math::DVec3;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
-use bevy::math::DVec3;
 
 #[derive(Default, Clone)]
 struct Warehouse {
@@ -70,8 +70,7 @@ fn warehouse_ui(
         {
             *warehouse = warehouse_request.clone();
         };
-        if ui.button("Save").clicked()
-        {
+        if ui.button("Save").clicked() {
             let path = rfd::FileDialog::new()
                 .set_file_name("warehouse.building.yaml")
                 .save_file();
@@ -145,15 +144,16 @@ fn warehouse_generator(
 
     let vert_stacks = warehouse.height / 2;
 
-    let mut prev_last_right_vertex_id = 0;
-    let mut prev_first_right_vertex_id = 0;
+    // save some vertex ID's as we loop through the aisles
+    let mut prev_last_right_vid = 0;
+    let mut prev_first_right_vid = 0;
 
     for aisle_idx in 0..num_aisles {
         let aisle_y = (aisle_idx as f64 - (num_aisles as f64 - 1.) / 2.) * aisle_spacing;
         let rack_1_y = aisle_y - aisle_width / 2. + 2. * rack_depth / 2. - rack_depth_spacing;
         let rack_2_y = aisle_y + aisle_width / 2. + 0. * rack_depth / 2. + rack_depth_spacing;
         let rack_start_x = -(width - 2. * roadway_width) / 2. + 1.;
-        let last_left_vertex_id = add_racks(
+        let last_left_vid = add_racks(
             &mut spawner,
             "L1",
             rack_start_x,
@@ -164,7 +164,7 @@ fn warehouse_generator(
             DVec3::new(-rack_length / 2.0, 0.7, 0.0),
             DVec3::new(-rack_length / 2.0, 1.7, 0.0),
         );
-        let last_right_vertex_id = add_racks(
+        let last_right_vid = add_racks(
             &mut spawner,
             "L1",
             rack_start_x,
@@ -176,16 +176,16 @@ fn warehouse_generator(
             DVec3::new(-rack_length / 2.0, -rack_depth - 1.7, 0.0),
         );
 
-        let first_left_vertex_id = last_left_vertex_id - (num_racks as usize) * 2 - 1;
-        let first_right_vertex_id = last_left_vertex_id + 1;
-        add_lane(&mut spawner, last_left_vertex_id, last_right_vertex_id);
-        add_lane(&mut spawner, first_left_vertex_id, first_right_vertex_id);
+        let first_left_vid = last_left_vid - (num_racks as usize) * 2 - 1;
+        let first_right_vid = last_left_vid + 1;
+        add_lane(&mut spawner, last_left_vid, last_right_vid);
+        add_lane(&mut spawner, first_left_vid, first_right_vid);
         if aisle_idx > 0 {
-            add_lane(&mut spawner, prev_last_right_vertex_id, last_left_vertex_id);
-            add_lane(&mut spawner, prev_first_right_vertex_id, first_right_vertex_id);
+            add_lane(&mut spawner, prev_last_right_vid, last_left_vid);
+            add_lane(&mut spawner, prev_first_right_vid, first_right_vid);
         }
-        prev_last_right_vertex_id = last_right_vertex_id;
-        prev_first_right_vertex_id = first_right_vertex_id;
+        prev_last_right_vid = last_right_vid;
+        prev_first_right_vid = first_right_vid;
 
         if settings.graphics_quality == GraphicsQuality::Ultra {
             // for now we're a square
@@ -244,22 +244,26 @@ fn warehouse_generator(
     });
 }
 
-fn add_lane(
-    spawner: &mut Spawner,
-    v1_id: usize,
-    v2_id: usize
-) {
+fn add_lane(spawner: &mut Spawner, v1_id: usize, v2_id: usize) {
     let mut props = LaneProperties::default();
     props.bidirectional = RbmfBool::from(true);
 
     spawner
-        .spawn_in_level("L1", Lane(
-            v1_id,
-            v2_id,
-            props,
-        ))
+        .spawn_in_level("L1", Lane(v1_id, v2_id, props))
         .unwrap()
         .insert(WarehouseRespawnTag);
+}
+
+fn add_vertex(spawner: &mut Spawner, x: f64, y: f64) -> Entity {
+    // spawn the vertex at the bottom of the column
+    return spawner
+        .spawn_vertex(
+            "L1",
+            Vertex(x, y, 0.0, "foo".to_string(), VertexProperties::default()),
+        )
+        .unwrap()
+        .insert(WarehouseRespawnTag)
+        .id();
 }
 
 fn add_racks(
@@ -277,44 +281,28 @@ fn add_racks(
     let rack_height = 2.4;
 
     // spawn the vertex at the bottom of the column
-    let eid = spawner
-        .spawn_vertex("L1", Vertex(
-            rack_start_x - 0.5 * rack_length,
-            y + travel_lane_vec.y,
-            0.0,
-            "foo".to_string(),
-            VertexProperties::default(),
-        ))
+    let eid = add_vertex(
+        spawner,
+        rack_start_x - 0.5 * rack_length,
+        y + travel_lane_vec.y,
+    );
+
+    // this is bad. raptors are attacking.
+    let mut next_vertex_id = spawner
+        .vertex_mgrs
+        .0
+        .get("L1")
         .unwrap()
-        .insert(WarehouseRespawnTag)
-        .id();
-    let mut next_vertex_id = spawner.vertex_mgrs.0.get("L1").unwrap().entity_to_id(eid).unwrap() + 1;
+        .entity_to_id(eid)
+        .unwrap()
+        + 1;
 
     for idx in 0..(num_racks + 1) {
         let rack_x = rack_start_x + (idx as f64) * rack_length;
 
         if idx > 0 {
-            spawner
-                .spawn_vertex("L1", Vertex(
-                    rack_x + parking_vec.x,
-                    y + parking_vec.y,
-                    0.0,
-                    "foo".to_string(),
-                    VertexProperties::default(),
-                ))
-                .unwrap()
-                .insert(WarehouseRespawnTag);
-
-            spawner
-                .spawn_vertex("L1", Vertex(
-                    rack_x + travel_lane_vec.x,
-                    y + travel_lane_vec.y,
-                    0.0,
-                    "foo".to_string(),
-                    VertexProperties::default(),
-                ))
-                .unwrap()
-                .insert(WarehouseRespawnTag);
+            add_vertex(spawner, rack_x + parking_vec.x, y + parking_vec.y);
+            add_vertex(spawner, rack_x + travel_lane_vec.x, y + travel_lane_vec.y);
 
             add_lane(spawner, next_vertex_id, next_vertex_id + 1);
             add_lane(spawner, next_vertex_id + 1, next_vertex_id - 1);
@@ -374,16 +362,11 @@ fn add_racks(
     }
 
     // spawn the vertex at the top of the column
-    spawner
-        .spawn_vertex("L1", Vertex(
-            rack_start_x + (num_racks as f64 + 0.5) * rack_length,
-            y + travel_lane_vec.y,
-            0.0,
-            "foo".to_string(),
-            VertexProperties::default(),
-        ))
-        .unwrap()
-        .insert(WarehouseRespawnTag);
+    add_vertex(
+        spawner,
+        rack_start_x + (num_racks as f64 + 0.5) * rack_length,
+        y + travel_lane_vec.y,
+    );
     next_vertex_id += 1;
 
     add_lane(spawner, next_vertex_id - 2, next_vertex_id - 1);
