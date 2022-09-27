@@ -71,9 +71,14 @@ fn warehouse_ui(
             *warehouse = warehouse_request.clone();
         };
         if ui.button("Save").clicked() {
+            #[cfg(not(target_arch = "wasm32"))]
             let path = rfd::FileDialog::new()
                 .set_file_name("warehouse.building.yaml")
                 .save_file();
+
+            #[cfg(target_arch = "wasm32")]
+            let path = Some(PathBuf::from("warehouse.building.yaml"));
+
             if let Some(path) = path {
                 save_map.send(SaveMap(PathBuf::from(path)));
             }

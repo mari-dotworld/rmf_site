@@ -24,6 +24,9 @@ use crate::{
     wall::Wall,
 };
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
 pub struct SaveLoadPlugin;
 
 pub struct SaveMap(pub PathBuf);
@@ -177,8 +180,24 @@ fn save(world: &mut World) {
         crowd_sim: building_map_extra.crowd_sim.clone(),
         levels,
     };
-    let f = std::fs::File::create(path).unwrap();
-    serde_yaml::to_writer(f, &map).unwrap();
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let f = std::fs::File::create(path).unwrap();
+        serde_yaml::to_writer(f, &map).unwrap();
+        // let s = serde_yaml::to_string(&map).unwrap();
+        // println!("{}", s);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let s = serde_yaml::to_string(&map).unwrap();
+        download_building_yaml(&s);
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(module = "/web/rmf_sandbox_helpers.js")]
+extern "C" {
+    fn download_building_yaml(s: &str);
 }
 
 impl Plugin for SaveLoadPlugin {
