@@ -46,7 +46,7 @@ fn warehouse_ui(
         ui.heading("Warehouse Generator");
         ui.add_space(10.);
         if ui
-            .add(egui::Slider::new(&mut warehouse_request.area, 400.0..=1000.0).text("Area (m^2)"))
+            .add(egui::Slider::new(&mut warehouse_request.area, 400.0..=2000.0).text("Area (m^2)"))
             .changed()
         {
             *warehouse = warehouse_request.clone();
@@ -301,6 +301,12 @@ fn add_racks(
         .entity_to_id(eid)
         .unwrap()
         + 1;
+
+    // TODO: for reasons currently unknown, if this line is removed, the web
+    // build will sometimes crash when the slider is moved rapidly. I guess
+    // there is a race condition somewhere, somehow, with this unwise attempt
+    // at calculating vertex ID's.
+    println!("next_vertex_id = {:?}", next_vertex_id);
 
     for idx in 0..(num_racks + 1) {
         let rack_x = rack_start_x + (idx as f64) * rack_length;
