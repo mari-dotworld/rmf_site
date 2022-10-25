@@ -20,6 +20,7 @@ use crate::{interaction::InteractionState, site::LoadSite, AppState, OpenedMapFi
 use bevy::{app::AppExit, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_egui::{egui, EguiContext};
 use rmf_site_format::{legacy::building_map::BuildingMap, Site};
+use std::fs;
 
 use {bevy::tasks::Task, futures_lite::future, rfd::AsyncFileDialog};
 
@@ -152,6 +153,41 @@ fn egui_ui(
                             ))
                         });
                         _commands.spawn().insert(LoadSiteFileTask(future));
+                    }
+
+                    // handy for debugging; open a symlink test.building.yaml
+                    if ui.button("Open test map file").clicked() {
+                        let filename = "test.building.yaml";
+                        match fs::read(filename) {
+                            Ok(data) => {
+                                match BuildingMap::from_bytes(&file_data) {
+                                    Ok(building) => {
+                                        match building.to_site() {
+                                            Ok(site) => {
+                                                let future = AsyncComputeTaskPool::get().spawn(async move {
+                                                    Some(LoadSiteFileResult(
+                                                        Some(OpenedMapFile(filename.to_string().to_path_buf())),
+                                                        site,
+                                                    ))
+                                                });
+                                                _commands.spawn().insert(LoadSiteFileTask(future));
+                                            },
+                                            Err(err) => {
+                                                println!("{:?}", err);
+                                                Site::new();
+                                            }
+                                        }
+                                    },
+                                    Err(err) => {
+                                        println!("{:?}", err);
+                                    }
+                                };
+                            },
+                            Err(err) => {
+                                println!("{:?}", err);
+                                Vec::new()
+                            }
+                        };
                     }
                 }
 

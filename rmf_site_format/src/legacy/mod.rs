@@ -15,6 +15,7 @@
  *
 */
 
+pub mod actors;
 pub mod building_map;
 pub mod crowd_sim;
 pub mod door;

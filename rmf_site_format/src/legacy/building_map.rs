@@ -1,4 +1,4 @@
-use super::{crowd_sim::CrowdSim, level::Level, lift::Lift, PortingError, Result};
+use super::{crowd_sim::CrowdSim, level::Level, lift::Lift, PortingError, Result, actors::Actors};
 use crate::{
     Dock as SiteDock, Drawing as SiteDrawing, DrawingMarker, DrawingSource,
     Fiducial as SiteFiducial, FiducialMarker, IsStatic, Label, Lane as SiteLane, LaneMarker,
@@ -32,6 +32,8 @@ pub struct BuildingMap {
     pub crowd_sim: CrowdSim,
     #[serde(default)]
     pub lifts: BTreeMap<String, Lift>,
+    #[serde(default)]
+    pub actors: Actors,
 }
 
 impl BuildingMap {
