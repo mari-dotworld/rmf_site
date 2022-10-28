@@ -3,7 +3,6 @@ use std::collections::{BTreeMap, HashMap};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Behavior {
-    pub name: String,
     pub nodes: Vec<BehaviorNode>,
 }
 
@@ -12,6 +11,7 @@ pub struct BehaviorNode {
     #[serde(rename = "type")]
     pub type_: String,
     pub name: String,
+    #[serde(default)]
     pub params: HashMap<String, String>,
 }
 

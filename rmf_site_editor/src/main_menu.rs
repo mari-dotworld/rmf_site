@@ -20,8 +20,7 @@ use crate::{interaction::InteractionState, site::LoadSite, AppState, OpenedMapFi
 use bevy::{app::AppExit, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_egui::{egui, EguiContext};
 use rmf_site_format::{legacy::building_map::BuildingMap, Site};
-use std::fs;
-
+use std::{fs, path::PathBuf};
 use {bevy::tasks::Task, futures_lite::future, rfd::AsyncFileDialog};
 
 struct LoadSiteFileResult(Option<OpenedMapFile>, Site);
@@ -160,13 +159,13 @@ fn egui_ui(
                         let filename = "test.building.yaml";
                         match fs::read(filename) {
                             Ok(data) => {
-                                match BuildingMap::from_bytes(&file_data) {
+                                match BuildingMap::from_bytes(&data) {
                                     Ok(building) => {
                                         match building.to_site() {
                                             Ok(site) => {
                                                 let future = AsyncComputeTaskPool::get().spawn(async move {
                                                     Some(LoadSiteFileResult(
-                                                        Some(OpenedMapFile(filename.to_string().to_path_buf())),
+                                                        Some(OpenedMapFile(PathBuf::from(filename.to_string()))),
                                                         site,
                                                     ))
                                                 });
@@ -174,7 +173,6 @@ fn egui_ui(
                                             },
                                             Err(err) => {
                                                 println!("{:?}", err);
-                                                Site::new();
                                             }
                                         }
                                     },
@@ -185,7 +183,6 @@ fn egui_ui(
                             },
                             Err(err) => {
                                 println!("{:?}", err);
-                                Vec::new()
                             }
                         };
                     }
