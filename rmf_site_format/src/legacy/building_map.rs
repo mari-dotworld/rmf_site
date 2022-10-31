@@ -291,6 +291,15 @@ impl BuildingMap {
             }
         }
 
+        // process the actor structures
+        for (behavior_name, behavior) in &self.actors.behaviors {
+            println!("found behavior {}: {:?}", behavior_name, behavior);
+        }
+
+        for (actor_group_name, actor_group) in &self.actors.groups {
+            println!("found actor group {}: {:?}", actor_group_name, actor_group);
+        }
+
         let mut nav_graphs = BTreeMap::new();
         for (idx, lanes) in nav_graph_lanes {
             let lanes: BTreeMap<_, _> = lanes
