@@ -1,0 +1,34 @@
+// if autoload is empty trigger event
+        if autoload.is_none() {
+            let mut levels = BTreeMap::new();
+            levels.insert(0, Level::default());
+
+            let mut locations = BTreeMap::new();
+            locations.insert(
+                0,
+                Location {
+                    name: NameInSite("Milestone 0".to_string()),
+                    tags: LocationTags(vec![]),
+                    graphs: rmf_site_format::AssociatedGraphs::All,
+                    anchor: Point::from(0u32),
+                },
+            );
+
+            let guided = Guided {
+                graphs: BTreeMap::new(),
+                ranking: vec![],
+                lanes: BTreeMap::new(),
+                locations,
+            };
+
+            // create new site and convert to bytes
+            let site = Site {
+                levels,
+                navigation: Navigation { guided: guided },
+                ..default()
+            };
+            // convert site to bytes
+            let site_bytes = ron::to_string(&site).unwrap().as_bytes().to_vec();
+
+            _load_workspace.send(LoadWorkspace::Data(WorkspaceData::Site(site_bytes)));
+        }

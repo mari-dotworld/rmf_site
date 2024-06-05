@@ -1,0 +1,168 @@
+if ui.button("View demo map").clicked() {
+_load_workspace.send(LoadWorkspace::Data(WorkspaceData::LegacyBuilding(
+    demo_office(),
+)));
+}
+
+if ui.button("load locations").clicked() {
+let mut site_id = 0_u32..;
+let level_id = site_id.next().unwrap();
+
+let mut levels = BTreeMap::new();
+
+let mut drawings: BTreeMap<u32, rmf_site_format::Drawing> = BTreeMap::new();
+drawings.insert(
+    level_id,
+    rmf_site_format::Drawing {
+        properties: (rmf_site_format::DrawingProperties {
+            name: NameInSite(("test").to_string()),
+            source: rmf_site_format::AssetSource::Remote(
+                ("/home/ros1/guru/rmf_site/media/testmap.png").to_string(),
+            ),
+            pixels_per_meter: rmf_site_format::PixelsPerMeter(20.0),
+            ..default()
+        }),
+        ..default()
+    },
+);
+
+let mut anchors = BTreeMap::new();
+// anchors.insert(site_id.next().unwrap(), [0.0, 0.0].into()); //1
+// anchors.insert(site_id.next().unwrap(), [0.0, -1.0].into()); //2
+
+anchors.insert(
+    site_id.next().unwrap(),
+    [
+        (320.61 * 0.05 + 16.4 * 0.05) - 1.0,
+        (-159.33 * 0.05 + -11.0 * 0.05) + 0.5,
+    ]
+    .into(),
+);
+anchors.insert(
+    site_id.next().unwrap(),
+    [
+        (302.34 * 0.05 + 16.4 * 0.05) - 1.0,
+        (-172.60 * 0.05 + -11.0 * 0.05) + 0.5,
+    ]
+    .into(),
+);
+anchors.insert(
+    site_id.next().unwrap(),
+    [
+        (188.18 * 0.05 + 16.4 * 0.05) - 1.0,
+        (-182.04 * 0.05 + -11.0 * 0.05) + 0.5,
+    ]
+    .into(),
+);
+anchors.insert(
+    site_id.next().unwrap(),
+    [
+        (170.88 * 0.05 + 16.4 * 0.05) - 1.0,
+        (-162.27 * 0.05 + -11.0 * 0.05) + 0.5,
+    ]
+    .into(),
+);
+anchors.insert(
+    site_id.next().unwrap(),
+    [
+        (263.33 * 0.05 + 16.4 * 0.05) - 1.0,
+        (-151.31 * 0.05 + -11.0 * 0.05) + 0.5,
+    ]
+    .into(),
+);
+
+levels.insert(
+    level_id,
+    Level {
+        properties: rmf_site_format::LevelProperties {
+            name: NameInSite("l1".to_string()),
+            ..default()
+        },
+        drawings,
+        anchors,
+        ..default()
+    },
+);
+
+let mut locations = BTreeMap::new();
+let mut tags = Vec::new();
+tags.push(LocationTag::Charger);
+
+locations.insert(
+    site_id.next().unwrap(),
+    Location {
+        name: NameInSite("one".to_string()),
+        tags: rmf_site_format::LocationTags(tags.clone()),
+        graphs: rmf_site_format::AssociatedGraphs::All,
+        anchor: rmf_site_format::Point(1),
+    },
+);
+
+locations.insert(
+    site_id.next().unwrap(),
+    Location {
+        name: NameInSite("two".to_string()),
+        graphs: rmf_site_format::AssociatedGraphs::All,
+        anchor: rmf_site_format::Point(2),
+        tags: default(),
+    },
+);
+
+locations.insert(
+    site_id.next().unwrap(),
+    Location {
+        name: NameInSite("three".to_string()),
+        graphs: rmf_site_format::AssociatedGraphs::All,
+        anchor: rmf_site_format::Point(3),
+        tags: default(),
+    },
+);
+
+locations.insert(
+    site_id.next().unwrap(),
+    Location {
+        name: NameInSite("four".to_string()),
+        graphs: rmf_site_format::AssociatedGraphs::All,
+        anchor: rmf_site_format::Point(4),
+        tags: default(),
+    },
+);
+
+locations.insert(
+    site_id.next().unwrap(),
+    Location {
+        name: NameInSite("five".to_string()),
+        graphs: rmf_site_format::AssociatedGraphs::All,
+        anchor: rmf_site_format::Point(5),
+        tags: default(),
+    },
+);
+
+let mut graphs = BTreeMap::new();
+graphs.insert(
+    site_id.next().unwrap(),
+    NavGraph {
+        name: NameInSite("navgraph".to_string()),
+        ..default()
+    },
+);
+let guided = rmf_site_format::Guided {
+    graphs,
+    locations,
+    ..default()
+};
+
+// create new site and convert to bytes
+let site = rmf_site_format::Site {
+    levels,
+    navigation: rmf_site_format::Navigation { guided },
+    ..default()
+};
+
+println!("site json data : ->{:?}", site);
+
+// convert site to bytes
+let site_bytes: Vec<u8> = ron::to_string(&site).unwrap().as_bytes().to_vec();
+
+_load_workspace.send(LoadWorkspace::Data(WorkspaceData::Site(site_bytes)));
+}

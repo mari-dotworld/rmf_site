@@ -17,9 +17,10 @@
 
 use super::demo_world::*;
 use crate::{AppState, LoadWorkspace, WorkspaceData};
-use bevy::{app::AppExit, prelude::*, tasks::Task};
+use bevy::{app::AppExit, prelude::*, sprite::Anchor, tasks::Task};
 use bevy_egui::{egui, EguiContexts};
-use std::path::PathBuf;
+use rmf_site_format::{Level, Location, LocationTag, NameInSite, NavGraph};
+use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Resource)]
 pub struct Autoload {
@@ -72,10 +73,147 @@ fn egui_ui(
                     )));
                 }
 
-                if ui.button("Open a file").clicked() {
-                    _load_workspace.send(LoadWorkspace::Dialog);
-                }
+                if ui.button("load locations").clicked() {
+                    let mut site_id = 0_u32..;
+                    let level_id = site_id.next().unwrap();
 
+                    let mut levels = BTreeMap::new();
+
+                    let mut drawings: BTreeMap<u32, rmf_site_format::Drawing> = BTreeMap::new();
+                    drawings.insert(
+                        level_id,
+                        rmf_site_format::Drawing {
+                            properties: (rmf_site_format::DrawingProperties {
+                                name: NameInSite(("test").to_string()),
+                                source: rmf_site_format::AssetSource::Remote(
+                                    ("/home/ros1/guru/rmf_site/media/testmap.png").to_string(),
+                                ),
+                                pixels_per_meter: rmf_site_format::PixelsPerMeter(20.0),
+                                ..default()
+                            }),
+                            ..default()
+                        },
+                    );
+
+                    let mut anchors = BTreeMap::new();
+                    // anchors.insert(site_id.next().unwrap(), [0.0, 0.0].into()); //1
+                    // anchors.insert(site_id.next().unwrap(), [0.0, -1.0].into()); //2
+
+                    let resolution = 0.05000000074505806;
+                    let map_height = 373.0 * resolution;
+                    let origin_x = -9.6096923828125;
+                    let origin_y = -8.197599029541015;
+
+
+                    anchors.insert(
+                        site_id.next().unwrap(),
+                        [-0.002755206940574878 + -origin_x, -(map_height - -0.2878865198422611 + origin_y)].into(),
+                    );
+
+                    anchors.insert(
+                        site_id.next().unwrap(),
+                        [-1.0626822656723895 + -origin_x, -(map_height - 0.20681487232052476 + origin_y)].into(),
+                    );
+
+                    anchors.insert(
+                        site_id.next().unwrap(),
+                        [-2.75840185353086 + -origin_x, -(map_height -  0.6271782009182569 + origin_y)].into(),
+                    );
+
+                    anchors.insert(
+                        site_id.next().unwrap(),
+                        [-1.6098684664274894 + -origin_x, -(map_height - 0.6585474380100034 + origin_y)].into(),
+                    );
+
+                    levels.insert(
+                        level_id,
+                        Level {
+                            properties: rmf_site_format::LevelProperties {
+                                name: NameInSite("l1".to_string()),
+                                ..default()
+                            },
+                            drawings,
+                            anchors,
+                            ..default()
+                        },
+                    );
+
+                    let mut locations = BTreeMap::new();
+                    let mut tags = Vec::new();
+                    tags.push(LocationTag::Charger);
+
+                    locations.insert(
+                        site_id.next().unwrap(),
+                        Location {
+                            name: NameInSite("one".to_string()),
+                            tags: rmf_site_format::LocationTags(tags.clone()),
+                            graphs: rmf_site_format::AssociatedGraphs::All,
+                            anchor: rmf_site_format::Point(1),
+                        },
+                    );
+
+
+                    locations.insert(
+                        site_id.next().unwrap(),
+                        Location {
+                            name: NameInSite("one".to_string()),
+                            tags: rmf_site_format::LocationTags(tags.clone()),
+                            graphs: rmf_site_format::AssociatedGraphs::All,
+                            anchor: rmf_site_format::Point(2),
+                        },
+                    );
+
+
+                    locations.insert(
+                        site_id.next().unwrap(),
+                        Location {
+                            name: NameInSite("one".to_string()),
+                            tags: rmf_site_format::LocationTags(tags.clone()),
+                            graphs: rmf_site_format::AssociatedGraphs::All,
+                            anchor: rmf_site_format::Point(3),
+                        },
+                    );
+
+
+                    locations.insert(
+                        site_id.next().unwrap(),
+                        Location {
+                            name: NameInSite("one".to_string()),
+                            tags: rmf_site_format::LocationTags(tags.clone()),
+                            graphs: rmf_site_format::AssociatedGraphs::All,
+                            anchor: rmf_site_format::Point(4),
+                        },
+                    );
+
+                    let mut graphs = BTreeMap::new();
+                    graphs.insert(
+                        site_id.next().unwrap(),
+                        NavGraph {
+                            name: NameInSite("navgraph".to_string()),
+                            ..default()
+                        },
+                    );
+
+                    let guided = rmf_site_format::Guided {
+                        graphs,
+                        locations,
+                        ..default()
+                    };
+
+                    // create new site and convert to bytes
+                    let site = rmf_site_format::Site {
+                        levels,
+                        navigation: rmf_site_format::Navigation { guided },
+                        ..default()
+                    };
+
+                    println!("site json data : ->{:?}", site);
+
+                    // convert site to bytes
+                    let site_bytes: Vec<u8> = ron::to_string(&site).unwrap().as_bytes().to_vec();
+
+                    _load_workspace.send(LoadWorkspace::Data(WorkspaceData::Site(site_bytes)));
+                }
                 // TODO(@mxgrey): Bring this back when we have finished developing
                 // the key features for workcell editing.
                 // if ui.button("Workcell Editor").clicked() {

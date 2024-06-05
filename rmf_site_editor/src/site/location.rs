@@ -130,6 +130,7 @@ pub fn add_location_visuals(
                 transform: location_halo_tf(tag),
                 ..default()
             });
+
             commands.entity(e).add_child(id);
         }
 
