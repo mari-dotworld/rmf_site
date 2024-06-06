@@ -87,7 +87,6 @@ impl MeshBuffer {
         self
     }
 
-
     pub(crate) fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -1076,6 +1075,13 @@ pub(crate) fn make_location_icon(radius: f32, height: f32, segments: usize) -> M
     let p1 = Affine3A::from_rotation_z(angle).transform_vector3(p0);
     let width = (p1 - p0).length();
 
+    println!(
+        "Width inside --->{:?},after ----> {:?}",
+        width,
+        radius + width / 2.0
+    );
+    println!("Height inside --->{:?}", height);
+
     make_flat_square_mesh(width).transform_by(Affine3A::from_translation(Vec3::new(
         radius + width / 2.0,
         0.0,
@@ -1089,9 +1095,12 @@ pub(crate) fn make_icon_halo(radius: f32, height: f32, segments: usize) -> MeshB
     let p1 = Affine3A::from_rotation_z(angle).transform_vector3(p0);
     let width = (p1 - p0).length();
 
-    println!("Width --->{:?}", width);
-    println!("Height --->{:?}", height);
-    
+    println!(
+        "Width inside --->{:?},after ----> {:?}",
+        radius,
+        radius + width / 2.0
+    );    println!("Height --->{:?}", height);
+
     let mut mesh = make_ring(radius, radius + width / 2.0, 32);
     for i in 0..segments {
         mesh = mesh.merge_with(

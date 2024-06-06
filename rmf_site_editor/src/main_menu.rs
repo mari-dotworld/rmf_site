@@ -84,9 +84,9 @@ fn egui_ui(
                         level_id,
                         rmf_site_format::Drawing {
                             properties: (rmf_site_format::DrawingProperties {
-                                name: NameInSite(("test").to_string()),
+                                name: NameInSite(("june").to_string()),
                                 source: rmf_site_format::AssetSource::Remote(
-                                    ("/home/ros1/guru/rmf_site/media/testmap.png").to_string(),
+                                    ("/home/ros1/guru/rmf_site/media/june-1-test.png").to_string(),
                                 ),
                                 pixels_per_meter: rmf_site_format::PixelsPerMeter(20.0),
                                 ..default()
@@ -95,34 +95,81 @@ fn egui_ui(
                         },
                     );
 
+                    // 9.114 , -8.9135
+                    //  8.791, -8.325
+
                     let mut anchors = BTreeMap::new();
                     // anchors.insert(site_id.next().unwrap(), [0.0, 0.0].into()); //1
                     // anchors.insert(site_id.next().unwrap(), [0.0, -1.0].into()); //2
 
-                    let resolution = 0.05000000074505806;
-                    let map_height = 373.0 * resolution;
-                    let origin_x = -9.6096923828125;
-                    let origin_y = -8.197599029541015;
+                    // let resolution = 0.05000000074505806;
+                    // let map_height = 373.0 * resolution;
+                    // let origin_x = -9.6096923828125;
+                    // let origin_y = -8.197599029541015;
 
+                    // anchors.insert(
+                    //     site_id.next().unwrap(),
+                    //     [-0.002755206940574878 + -origin_x, -(map_height - -0.2878865198422611 + origin_y)].into(),
+                    // );
 
+                    // anchors.insert(
+                    //     site_id.next().unwrap(),
+                    //     [-1.0626822656723895 + -origin_x, -(map_height - 0.20681487232052476 + origin_y)].into(),
+                    // );
+
+                    // anchors.insert(
+                    //     site_id.next().unwrap(),
+                    //     [-2.75840185353086 + -origin_x, -(map_height -  0.6271782009182569 + origin_y)].into(),
+                    // );
+
+                    // anchors.insert(
+                    //     site_id.next().unwrap(),
+                    //     [-1.6098684664274894 + -origin_x, -(map_height - 0.6585474380100034 + origin_y)].into(),
+                    // );
+
+                    // vijay
                     anchors.insert(
                         site_id.next().unwrap(),
-                        [-0.002755206940574878 + -origin_x, -(map_height - -0.2878865198422611 + origin_y)].into(),
+                        [
+                            ((331.82741765229474 + 5.0) * 0.05),
+                            -(((161.3932803576622 + 5.0) * 0.05) - (0.34617525 / 2.0) + (0.14235048) + 0.02),
+                        ]
+                        .into(),
                     );
 
                     anchors.insert(
                         site_id.next().unwrap(),
-                        [-1.0626822656723895 + -origin_x, -(map_height - 0.20681487232052476 + origin_y)].into(),
+                        [
+                            ((293.5692656948175 + 5.0) * 0.05),
+                            -(((166.25516386533914 + 5.0) * 0.05) - (0.34617525 / 2.0) + (0.14235048) + 0.02),
+                        ]
+                        .into(),
                     );
 
                     anchors.insert(
                         site_id.next().unwrap(),
-                        [-2.75840185353086 + -origin_x, -(map_height -  0.6271782009182569 + origin_y)].into(),
+                        [
+                            ((195.28149446847155 + 5.0) * 0.05),
+                            -(((176.99880369350066 + 5.0 ) * 0.05 ) - (0.34617525 / 2.0) + (0.14235048) + 0.02)
+                        ]
+                        .into(),
                     );
 
                     anchors.insert(
                         site_id.next().unwrap(),
-                        [-1.6098684664274894 + -origin_x, -(map_height - 0.6585474380100034 + origin_y)].into(),
+                        [
+                            ((177.6069650019961 + 5.0) * 0.05),
+                            -(((160.40290695967013 + 5.0 ) * 0.05 ) - (0.34617525 / 2.0) + (0.14235048) + 0.02),
+                        ]
+                        .into(),
+                    );
+
+                    anchors.insert(
+                        site_id.next().unwrap(),
+                        [
+                            ((255.11392445298804 + 5.0) * 0.05),
+                            -(((155.801186257567 + 5.0 ) * 0.05 ) - (0.34617525 / 2.0) + (0.14235048) + 0.02)                       ]
+                        .into(),
                     );
 
                     levels.insert(
@@ -152,7 +199,6 @@ fn egui_ui(
                         },
                     );
 
-
                     locations.insert(
                         site_id.next().unwrap(),
                         Location {
@@ -163,7 +209,6 @@ fn egui_ui(
                         },
                     );
 
-
                     locations.insert(
                         site_id.next().unwrap(),
                         Location {
@@ -173,7 +218,6 @@ fn egui_ui(
                             anchor: rmf_site_format::Point(3),
                         },
                     );
-
 
                     locations.insert(
                         site_id.next().unwrap(),
